@@ -1,0 +1,26 @@
+{
+  "name": "tetris",
+  "version": "1.0.0",
+  "description": "A tetris game written in JS",
+  "main": "tetris.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/galtonova/tetris.git"
+  },
+  "keywords": [
+    "tetris",
+    "javascript",
+    "es6"
+  ],
+  "author": "Tolga Gerekci",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/galtonova/tetris/issues"
+  },
+  "homepage": "https://github.com/galtonova/tetris#readme",
+  "devDependencies": {},
+  "dependencies": {}
+}
