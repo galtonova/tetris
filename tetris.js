@@ -389,7 +389,7 @@ const clearFullRows = (board) => {
 // main logic part
 const logic = () => {
   const curTime = new Date().getTime();
-  const gravTime = keys.down ? 50 : 500;
+  const gravTime = keys.down ? 25 : 250;
 
   // only move the unit down when gravTime amount of time has passed.
   if (curTime - game.lastGravityTime > gravTime) {
