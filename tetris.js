@@ -7,6 +7,10 @@ const randomElem = (items) => {
 
 // CLASS SHAPE /////////////////
 class Shape {
+  // x,y : starting top left of the shape
+  // centerX, centerY : rotation center of the shape
+  // blocks : array of points representing blocks
+  //        -- blocks format: {x: number, y: number}
   constructor (x, y, centerX, centerY, blocks) {
     let minX = 9999;
     let minY = 9999;
@@ -22,6 +26,7 @@ class Shape {
 
       this.blocks.push({x: block.x, y: block.y});
 
+      // to determine top left and bottom right x,y coordinates
       if (block.x > maxX) maxX = block.x;
       if (block.y > maxY) maxY = block.y;
 
@@ -29,11 +34,13 @@ class Shape {
       if (block.y < minY) minY = block.y;
     });
 
+    // since coordinates starts from 0, we need to add 1 to width and height
     this.width = maxX + 1;
     this.height = maxY + 1;
 
+    // these are the offset coordinates
     this.offsetX = minX;
-    // this.offsetY = minY;
+    // this.offsetY = minY;  // apperantly I haven't used offsetY in the code. weird. so I'll comment it for now
 
     this.x = x;
     this.y = y;
@@ -53,14 +60,22 @@ class Shape {
       block.x = block.x + 0.5 - this.centerX;
       block.y = block.y + 0.5 - this.centerY;
 
+      // let's do some rotation MAGIC ( math... )
+      // M A A A A G I I I I C
+      // https://en.wikipedia.org/wiki/Rotation_matrix
+
       // noinspection JSSuspiciousNameCombination
       let new_x = -block.y;
       // noinspection JSSuspiciousNameCombination
       let new_y = block.x;
 
+      // end of math magic
+
+      // since block 0,0 actually is between 0,0 and 1,1, it's center is actually at 0.5, 0.5 so we subtract 0.5 from it.
       block.x = new_x - 0.5 + this.centerX;
       block.y = new_y - 0.5 + this.centerY;
 
+      // again, we re-determine top-left and bottom-right of the shape for collision etc.
       if (block.x > maxX) maxX = block.x;
       if (block.y > maxY) maxY = block.y;
 
@@ -68,14 +83,14 @@ class Shape {
       if (block.y < minY) minY = block.y;
     });
 
+    // and add some another magic number 1  W O O H O O O O
     this.width = maxX + 1;
     this.height = maxY + 1;
 
     this.offsetX = minX;
-    // this.offsetY = minY;
+    // this.offsetY = minY; // I'll comment that for now. Maybe I will use it later?
   }
 }
-
 // END OF CLASS SHAPE /////////////////
 
 // SHAPES /////////////////
@@ -282,6 +297,7 @@ const keys = {
 };
 // END OF GLOBAL VARIABLES /////////////////
 
+// INIT /////////////////
 const init = () => {
   canvas.element = document.createElement('canvas');
   canvas.ctx = canvas.element.getContext('2d');
@@ -307,11 +323,34 @@ const init = () => {
 };
 // END OF INIT /////////////////
 
+// DESTROY /////////////////
+const destroy = () => {
+  canvas.element.outerHTML = '';
+
+  canvas.element = null;
+  canvas.ctx = null;
+
+  game.config = {};
+  game.tetrisBoard  = [];
+  game.activeShape = null;
+
+  keys.up = false;
+  keys.down = false;
+  keys.left = false;
+  keys.right = false;
+};
+// END OF DESTROY /////////////////
+
 const boardPlusActiveShape = () => {
   let ok = true;
+
+  // clone tetrisBoard
   const filledOnes = game.tetrisBoard.filter(() => true);
+
+  // for each block in tetrisBoard
   filledOnes.forEach((boardBlock) => {
     for (let shapeBlock of game.activeShape.blocks) {
+      // if tetrisBoard block and activeShape block is colliding, set ok to false
       if (shapeBlock.x + game.activeShape.x === boardBlock.x && shapeBlock.y + game.activeShape.y === boardBlock.y) {
         ok = false;
         break;
@@ -319,17 +358,21 @@ const boardPlusActiveShape = () => {
     }
   });
 
+  // if ok is false, that means there is a colliding block. return false
   if (!ok)
     return ok;
 
+  // add activeShape to tetrisBoard clone
   for (let shapeBlock of game.activeShape.blocks) {
     filledOnes.push({x: shapeBlock.x + game.activeShape.x, y: shapeBlock.y + game.activeShape.y});
   }
 
+  // return the clone. ( clone = tetrisBoard + activeShape )
   return filledOnes;
 
 };
 
+// it clears any rows if there is 'width' amount of blocks in them. which means it's full
 const clearFullRows = (board) => {
   for (let i = 0; i < game.config.tetrisBoardHeight; i++) {
     const row = board.filter(block => block.y === i);
@@ -343,28 +386,46 @@ const clearFullRows = (board) => {
   return board;
 };
 
+// main logic part
 const logic = () => {
   const curTime = new Date().getTime();
   const gravTime = keys.down ? 50 : 500;
 
+  // only move the unit down when gravTime amount of time has passed.
   if (curTime - game.lastGravityTime > gravTime) {
+
+    // if the shape is at the bottom of the board
     if (game.activeShape.y + game.activeShape.height === game.config.tetrisBoardHeight) {
+
+      // boardPlusActiveShape either returns false
+      //           ---- which means two blocks collide
+      // or returns tetrisBoard + activeShape array
       const newBoard = boardPlusActiveShape();
 
+      // if there is collision AT THE FUCKING BOTTOM that means some weird shit is going on. STAHP! NOOOOOOOOOOOOOOOOOO!
       if (newBoard === false) {
         return false;
       }
 
       game.tetrisBoard = clearFullRows(newBoard);
-      game.activeShape = randomShape(); // new ShapeI(game.config.tetrisBoardWidth);
+      game.activeShape = randomShape();
 
     } else {
+      // if shape is not at the bottom of the board but dropping down
+
+      // drop the shape 1 block
       game.activeShape.y++;
+
+      // check if there is a collision
       const result = boardPlusActiveShape();
+
+      // if there is acollision, move the shape up 1 block
+      // and then merge tetrisBoard and activeShape
       if (result === false) {
         game.activeShape.y--;
         const newBoard = boardPlusActiveShape();
 
+        // if after moving the block 1 unit up there is still collision which means we are at the top AND GAME IS OVER!
         if (newBoard === false) {
           return false;
         }
@@ -375,6 +436,7 @@ const logic = () => {
     }
     game.lastGravityTime = new Date().getTime();
   }
+
 
   if (keys.left) {
     if (game.activeShape.x + game.activeShape.offsetX > 0) {
@@ -462,6 +524,9 @@ const gameLoop = () => {
     setTimeout(gameLoop, 10);
   } else {
     alert('Game Over!');
+    destroy();
+    init();
+    setTimeout(gameLoop, 10);
   }
 };
 
