@@ -287,6 +287,8 @@ const game = {
   config: {},
   tetrisBoard: [],
   activeShape: null,
+  speed: 1,
+  score: 0,
 };
 
 const keys = {
@@ -333,6 +335,8 @@ const destroy = () => {
   game.config = {};
   game.tetrisBoard  = [];
   game.activeShape = null;
+  game.speed = 1;
+  game.score = 0;
 
   keys.up = false;
   keys.down = false;
@@ -377,6 +381,8 @@ const clearFullRows = (board) => {
   for (let i = 0; i < game.config.tetrisBoardHeight; i++) {
     const row = board.filter(block => block.y === i);
     if (row && row.length === game.config.tetrisBoardWidth) {
+	  game.speed = 1;
+	  game.score += 1;
       const below = board.filter(block => block.y > i);
       const above = board.filter(block => block.y < i);
       above.forEach((block) => {block.y++;});
@@ -386,10 +392,19 @@ const clearFullRows = (board) => {
   return board;
 };
 
+const calculateGravTime = () => {
+  let gravTime = 250;
+  if (keys.down) {
+    gravTime *= 0.1;
+  }
+  gravTime /= game.speed;
+  return gravTime;
+};
+
 // main logic part
 const logic = () => {
   const curTime = new Date().getTime();
-  const gravTime = keys.down ? 25 : 250;
+  const gravTime = calculateGravTime();
 
   // only move the unit down when gravTime amount of time has passed.
   if (curTime - game.lastGravityTime > gravTime) {
@@ -435,6 +450,7 @@ const logic = () => {
       }
     }
     game.lastGravityTime = new Date().getTime();
+	game.speed += 0.001;
   }
 
 
@@ -511,12 +527,21 @@ const render = () => {
   game.activeShape.blocks.forEach((block) => {
     drawBlock(block.x + game.activeShape.x, block.y + game.activeShape.y, '#c5c5c5');
   });
+  
+  canvas.ctx.fillStyle = "#202020";
+  canvas.ctx.strokeStyle = "#202020";
+  canvas.ctx.lineWidth = 1;
+  canvas.ctx.font = "20px Arial";
+  canvas.ctx.fillText("Game Speed: " + Math.round(game.speed * 100) / 100, 600, 50);
+  canvas.ctx.fillText("SCORE: " + game.score, 600, 80);
 
   // draw borders around the shape
   // drawBlock(game.activeShape.x + game.activeShape.offsetX, game.activeShape.y + game.activeShape.offsetY, 'rgba(200,0,0,0.2)');
   // drawBlock(game.activeShape.x + game.activeShape.width - 1, game.activeShape.y + game.activeShape.height - 1, 'rgba(200,0,0,0.2)');
 
 };
+
+// END OF RENDER /////////////////
 
 const gameLoop = () => {
   if (logic()) {
@@ -548,6 +573,7 @@ document.onkeydown = ev => {
 };
 
 document.onkeyup = ev => {
+  console.log('KeyUp Event', ev);
   switch (ev.key) {
     case 'ArrowDown':
       keys.down = false;
@@ -561,9 +587,14 @@ document.onkeyup = ev => {
     case 'ArrowRight':
       keys.right = false;
       break;
+	case '+':
+      game.speed += 0.25;
+      break;
+	case '-':
+      game.speed -= 0.25;
+      break;
   }
 };
-// END OF RENDER /////////////////
 
 //////////////////////////
 
