@@ -661,10 +661,12 @@ document.onkeyup = ev => {
 
 let touchEvent;
 let activeShapeXAtTouchStart;
+let touchTime;
 document.ontouchstart = ev => {
   console.log('TouchStart Event', ev);
   touchEvent = ev;
   activeShapeXAtTouchStart = game.activeShape.x;
+  touchTime = new Date().getTime();
 };
 
 document.ontouchmove = ev => {
@@ -672,24 +674,40 @@ document.ontouchmove = ev => {
     const touch = ev.touches[0];
     // calculate delta
     const deltaX = touch.clientX - touchEvent.touches[0].clientX;
-    // const deltaY = touch.clientY - touchEvent.touches[0].clientY;
+    const deltaY = touch.clientY - touchEvent.touches[0].clientY;
 
     // calculate how many boxes
     const deltaBoxesX = Math.round(deltaX / game.config.tetrisBoxSize);
-    // const deltaBoxesY = Math.round(deltaY / game.config.tetrisBoxSize);
+    const deltaBoxesY = Math.round(deltaY / game.config.tetrisBoxSize);
 
     // move the shape
+    const oldX = game.activeShape.x;
     game.activeShape.x = activeShapeXAtTouchStart + deltaBoxesX;
+    if (!boardPlusActiveShape(true)) {
+        game.activeShape.x = oldX;
+    }
+
+    keys.down = deltaBoxesY > 3;
 };
 
 document.ontouchend = ev => {
   console.log('TouchEnd Event', ev);
   touchEvent = null;
+  keys.down = false;
+  if (touchTime && new Date().getTime() - touchTime < 200) {
+    game.activeShape.rotate();
+  }
+  touchTime = null;
 };
 
 document.ontouchcancel = ev => {
   console.log('TouchCancel Event', ev);
   touchEvent = null;
+  keys.down = false;
+  if (touchTime && new Date().getTime() - touchTime < 200) {
+    game.activeShape.rotate();
+  }
+  touchTime = null;
 };
 
 //////////////////////////
