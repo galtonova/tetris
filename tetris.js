@@ -581,7 +581,7 @@ const render = () => {
   canvas.ctx.strokeStyle = "#202020";
   canvas.ctx.lineWidth = 1;
   canvas.ctx.font = "20px Arial";
-  canvas.ctx.fillText("v0.0.7", 600, 20);
+  canvas.ctx.fillText("v0.0.9", 600, 20);
   canvas.ctx.fillText("Game Speed: " + Math.round((game.speed + game.extraSpeed) * 100) / 100, 600, 50);
   canvas.ctx.fillText("SCORE: " + game.score, 600, 80);
   canvas.ctx.fillText(game.paused ? "PAUSED" : "", 600, 110);
@@ -662,11 +662,13 @@ document.onkeyup = ev => {
 let touchEvent;
 let activeShapeXAtTouchStart;
 let touchTime;
+let shapeHasMoved;
 document.ontouchstart = ev => {
   console.log('TouchStart Event', ev);
   touchEvent = ev;
   activeShapeXAtTouchStart = game.activeShape.x;
   touchTime = new Date().getTime();
+  shapeHasMoved = false;
 };
 
 document.ontouchmove = ev => {
@@ -677,14 +679,18 @@ document.ontouchmove = ev => {
     const deltaY = touch.clientY - touchEvent.touches[0].clientY;
 
     // calculate how many boxes
-    const deltaBoxesX = Math.round(deltaX / game.config.tetrisBoxSize);
-    const deltaBoxesY = Math.round(deltaY / game.config.tetrisBoxSize);
+    const deltaBoxesX = Math.floor(deltaX / game.config.tetrisBoxSize);
+    const deltaBoxesY = Math.floor(deltaY / game.config.tetrisBoxSize);
 
-    // move the shape
-    const oldX = game.activeShape.x;
-    game.activeShape.x = activeShapeXAtTouchStart + deltaBoxesX;
-    if (!boardPlusActiveShape(true)) {
+    if (deltaBoxesX !== 0) {
+      // move the shape
+      const oldX = game.activeShape.x;
+      game.activeShape.x = activeShapeXAtTouchStart + deltaBoxesX;
+      if (!boardPlusActiveShape(true)) {
         game.activeShape.x = oldX;
+      } else {
+        shapeHasMoved = true;
+      }
     }
 
     keys.down = deltaBoxesY > 3;
@@ -694,7 +700,7 @@ document.ontouchend = ev => {
   console.log('TouchEnd Event', ev);
   touchEvent = null;
   keys.down = false;
-  if (touchTime && new Date().getTime() - touchTime < 200) {
+  if (!shapeHasMoved && touchTime && new Date().getTime() - touchTime < 200) {
     game.activeShape.rotate();
   }
   touchTime = null;
@@ -704,7 +710,7 @@ document.ontouchcancel = ev => {
   console.log('TouchCancel Event', ev);
   touchEvent = null;
   keys.down = false;
-  if (touchTime && new Date().getTime() - touchTime < 200) {
+  if (!shapeHasMoved && touchTime && new Date().getTime() - touchTime < 200) {
     game.activeShape.rotate();
   }
   touchTime = null;
