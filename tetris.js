@@ -307,16 +307,16 @@ const init = () => {
   canvas.element = document.createElement('canvas');
   canvas.ctx = canvas.element.getContext('2d');
 
-  canvas.element.width = 800;
-  canvas.element.height = 800;
+  canvas.element.width = 370;
+  canvas.element.height = 860;
   canvas.element.style.border = '1px solid black';
 
   document.body.appendChild(canvas.element);
 
   ////////////////////
 
-  game.config.tetrisBoardX = 100;
-  game.config.tetrisBoardY = 50;
+  game.config.tetrisBoardX = 10;
+  game.config.tetrisBoardY = 100;
   game.config.tetrisBoardWidth = 14; // how many tetris boxes horizontally
   game.config.tetrisBoardHeight = 30; // how many tetris boxes vertically
 
@@ -581,10 +581,12 @@ const render = () => {
   canvas.ctx.strokeStyle = "#202020";
   canvas.ctx.lineWidth = 1;
   canvas.ctx.font = "20px Arial";
-  canvas.ctx.fillText("v0.0.9", 600, 20);
-  canvas.ctx.fillText("Game Speed: " + Math.round((game.speed + game.extraSpeed) * 100) / 100, 600, 50);
-  canvas.ctx.fillText("SCORE: " + game.score, 600, 80);
-  canvas.ctx.fillText(game.paused ? "PAUSED" : "", 600, 110);
+  const xStart = 20;
+  const yStart = 30;
+  canvas.ctx.fillText("v0.0.10", xStart, yStart);
+  canvas.ctx.fillText("Game Speed: " + Math.round((game.speed + game.extraSpeed) * 100) / 100, xStart, yStart + 20);
+  canvas.ctx.fillText("SCORE: " + game.score, xStart, yStart + 40);
+  canvas.ctx.fillText(game.paused ? "PAUSED" : "", xStart, yStart + 60);
 
   // draw borders around the shape
   // drawBlock(game.activeShape.x + game.activeShape.offsetX, game.activeShape.y + game.activeShape.offsetY, 'rgba(200,0,0,0.2)');
