@@ -307,8 +307,8 @@ const init = () => {
   canvas.element = document.createElement('canvas');
   canvas.ctx = canvas.element.getContext('2d');
 
-  canvas.element.width = 370;
-  canvas.element.height = 760;
+  canvas.element.width = 320;
+  canvas.element.height = 670;
   canvas.element.style.border = '1px solid black';
 
   document.body.appendChild(canvas.element);
@@ -317,8 +317,8 @@ const init = () => {
 
   game.config.tetrisBoardX = 10;
   game.config.tetrisBoardY = 100;
-  game.config.tetrisBoardWidth = 14; // how many tetris boxes horizontally
-  game.config.tetrisBoardHeight = 25; // how many tetris boxes vertically
+  game.config.tetrisBoardWidth = 12; // how many tetris boxes horizontally
+  game.config.tetrisBoardHeight = 22; // how many tetris boxes vertically
 
   game.config.tetrisBoxSize = 25; // The size of a tetris box in pixels
 
