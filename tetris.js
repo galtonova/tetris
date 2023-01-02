@@ -484,54 +484,56 @@ const logic = () => {
   }
 
   if (keys.up) {
-    const rotateActiveShapeIfPossible = (changeX = 0) => {
-      const oldBlocks = JSON.parse(JSON.stringify(game.activeShape.blocks));
-      const oldWidth = game.activeShape.width;
-      const oldHeight = game.activeShape.height;
-      const oldX = game.activeShape.x;
-
-      game.activeShape.x += changeX;
-      game.activeShape.rotate();
-
-      if (boardPlusActiveShape(true)) {
-        return true;
-      }
-
-      game.activeShape.blocks = oldBlocks;
-      game.activeShape.width = oldWidth;
-      game.activeShape.height = oldHeight;
-      game.activeShape.x = oldX;
-
-      return false;
-    };
     (() => {
       keys.up = false;
-
-      if (rotateActiveShapeIfPossible()) {
-        return;
-      }
-
-      if (rotateActiveShapeIfPossible(1)) {
-        return;
-      }
-
-      if (rotateActiveShapeIfPossible(-1)) {
-        return;
-      }
-
-      if (game.activeShape.height >= 2 && rotateActiveShapeIfPossible(2)) {
-        return;
-      }
-
-      if (game.activeShape.height >= 2 && rotateActiveShapeIfPossible(-2)) {
-        return;
-      }
+      rotateActiveShape();
     })();
   }
 
   return true;
 
 };
+const rotateActiveShapeIfPossible = (changeX = 0) => {
+  const oldBlocks = JSON.parse(JSON.stringify(game.activeShape.blocks));
+  const oldWidth = game.activeShape.width;
+  const oldHeight = game.activeShape.height;
+  const oldX = game.activeShape.x;
+
+  game.activeShape.x += changeX;
+  game.activeShape.rotate();
+
+  if (boardPlusActiveShape(true)) {
+    return true;
+  }
+
+  game.activeShape.blocks = oldBlocks;
+  game.activeShape.width = oldWidth;
+  game.activeShape.height = oldHeight;
+  game.activeShape.x = oldX;
+
+  return false;
+};
+const rotateActiveShape = () => {
+  if (rotateActiveShapeIfPossible()) {
+    return;
+  }
+
+  if (rotateActiveShapeIfPossible(1)) {
+    return;
+  }
+
+  if (rotateActiveShapeIfPossible(-1)) {
+    return;
+  }
+
+  if (game.activeShape.height >= 2 && rotateActiveShapeIfPossible(2)) {
+    return;
+  }
+
+  if (game.activeShape.height >= 2 && rotateActiveShapeIfPossible(-2)) {
+    return;
+  }
+}
 // END OF LOGIC /////////////////
 
 const drawBlock = (x, y, color) => {
@@ -703,7 +705,7 @@ document.ontouchend = ev => {
   touchEvent = null;
   keys.down = false;
   if (!shapeHasMoved && touchTime && new Date().getTime() - touchTime < 200) {
-    game.activeShape.rotate();
+    rotateActiveShape();
   }
   touchTime = null;
 };
@@ -713,7 +715,7 @@ document.ontouchcancel = ev => {
   touchEvent = null;
   keys.down = false;
   if (!shapeHasMoved && touchTime && new Date().getTime() - touchTime < 200) {
-    game.activeShape.rotate();
+    rotateActiveShape();
   }
   touchTime = null;
 };
