@@ -659,9 +659,11 @@ document.onkeyup = ev => {
 };
 
 let touchEvent;
+let activeShapeXAtTouchStart;
 document.ontouchstart = ev => {
   console.log('TouchStart Event', ev);
   touchEvent = ev;
+  activeShapeXAtTouchStart = game.activeShape.x;
 };
 
 document.ontouchmove = ev => {
@@ -676,7 +678,7 @@ document.ontouchmove = ev => {
     // const deltaBoxesY = Math.round(deltaY / game.config.tetrisBoxSize);
 
     // move the shape
-    game.activeShape.x += deltaBoxesX;
+    game.activeShape.x = activeShapeXAtTouchStart + deltaBoxesX;
 };
 
 document.ontouchend = ev => {
