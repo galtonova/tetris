@@ -581,6 +581,7 @@ const render = () => {
   canvas.ctx.strokeStyle = "#202020";
   canvas.ctx.lineWidth = 1;
   canvas.ctx.font = "20px Arial";
+  canvas.ctx.fillText("v0.0.7", 600, 20);
   canvas.ctx.fillText("Game Speed: " + Math.round((game.speed + game.extraSpeed) * 100) / 100, 600, 50);
   canvas.ctx.fillText("SCORE: " + game.score, 600, 80);
   canvas.ctx.fillText(game.paused ? "PAUSED" : "", 600, 110);
