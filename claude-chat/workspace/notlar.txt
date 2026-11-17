@@ -1,0 +1,9 @@
+Bu klasör Claude'un çalışma alanı.
+
+Chat penceresinden "bu klasörde ne var?" diye sorarsan Claude bu dosyayı
+araç (tool) kullanarak bulur ve okur. "merhaba.txt diye bir dosya oluştur"
+dersen dosya burada belirir.
+
+Yapılacaklar:
+- Olay akışında tool_use ve tool_result olaylarını bul
+- Session id'yi kopyalayıp terminalden aynı sohbete devam et

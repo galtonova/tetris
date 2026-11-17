@@ -1,0 +1,306 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Claude Chat</title>
+<style>
+  :root {
+    --bg: #f6f5f1; --surface: #ffffff; --border: #dddad2; --text: #1f1e1b; --muted: #77746b;
+    --accent: #b5532f; --accent-text: #ffffff; --tool-bg: #f0eee8; --error: #b3261e;
+    color-scheme: light dark;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1b1a18; --surface: #262522; --border: #3b3935; --text: #ecebe6; --muted: #9c988d;
+      --accent: #d97a54; --accent-text: #1b1a18; --tool-bg: #201f1d; --error: #f2b8b5;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    display: flex; flex-direction: column;
+    background: var(--bg); color: var(--text);
+    font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  code, pre, .tool { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+
+  header {
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    padding: 10px 16px; border-bottom: 1px solid var(--border);
+  }
+  header h1 { font-size: 16px; margin: 0; }
+  header .session { flex: 1; min-width: 0; color: var(--muted); font-size: 13px; overflow-wrap: anywhere; }
+  header code { user-select: all; }
+  button {
+    font: inherit; padding: 6px 14px; border-radius: 8px; cursor: pointer;
+    border: 1px solid var(--border); background: var(--surface); color: var(--text);
+  }
+  button.primary { background: var(--accent); color: var(--accent-text); border-color: transparent; }
+  button:disabled { opacity: .5; cursor: default; }
+
+  main { flex: 1; min-height: 0; display: grid; grid-template-columns: 3fr 2fr; }
+  #chat { display: flex; flex-direction: column; min-height: 0; min-width: 0; }
+  #messages { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 8px; }
+  .msg { max-width: 85%; padding: 8px 12px; border-radius: 12px; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .msg.user { align-self: flex-end; background: var(--accent); color: var(--accent-text); }
+  .msg.assistant { align-self: flex-start; background: var(--surface); border: 1px solid var(--border); }
+  .msg.preview { opacity: .7; }
+  .msg.tool {
+    align-self: flex-start; background: var(--tool-bg); border: 1px dashed var(--border);
+    font-size: 12.5px; color: var(--muted);
+  }
+  .msg.tool b { color: var(--text); font-weight: 600; }
+  .msg.meta { align-self: center; color: var(--muted); font-size: 12.5px; padding: 0; }
+  .msg.error { align-self: flex-start; color: var(--error); border: 1px solid var(--error); }
+  .empty { margin: auto; color: var(--muted); text-align: center; max-width: 34ch; }
+
+  form { display: flex; gap: 8px; padding: 12px 16px; border-top: 1px solid var(--border); }
+  textarea {
+    flex: 1; resize: none; font: inherit; padding: 8px 12px; border-radius: 8px;
+    border: 1px solid var(--border); background: var(--surface); color: var(--text);
+  }
+
+  #events { display: flex; flex-direction: column; min-height: 0; min-width: 0; border-left: 1px solid var(--border); }
+  #events h2 { font-size: 13px; margin: 0; padding: 10px 14px 4px; }
+  #events .help { padding: 0 14px 8px; font-size: 12.5px; color: var(--muted); }
+  #events .help ul { margin: 6px 0 0; padding-left: 18px; }
+  #log { flex: 1; overflow-y: auto; padding: 0 14px 14px; font-size: 12.5px; }
+  .ev { border-top: 1px solid var(--border); padding: 4px 0; }
+  .ev summary { cursor: pointer; overflow-wrap: anywhere; color: var(--muted); }
+  .ev .type { color: var(--text); font-weight: 600; }
+  .ev pre { margin: 6px 0; max-height: 260px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 12px; }
+
+  @media (max-width: 760px) {
+    main { grid-template-columns: 1fr; grid-template-rows: 3fr 2fr; }
+    #events { border-left: 0; border-top: 1px solid var(--border); }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Claude Chat</h1>
+  <span class="session">session: <code id="session">henüz yok</code></span>
+  <button id="new" type="button">Yeni sohbet</button>
+</header>
+
+<main>
+  <section id="chat">
+    <div id="messages">
+      <p class="empty" id="empty">Bir mesaj yaz. Örneğin: “Bu klasörde ne var?”</p>
+    </div>
+    <form id="form">
+      <textarea id="input" rows="2" placeholder="Mesaj yaz (Enter gönderir, Shift+Enter yeni satır)" autofocus></textarea>
+      <button class="primary" id="send">Gönder</button>
+    </form>
+  </section>
+
+  <aside id="events">
+    <h2>Harness olay akışı</h2>
+    <details class="help">
+      <summary>Bu olaylar ne?</summary>
+      <ul>
+        <li><b>system / init</b>: harness başladı; model, araç listesi ve session id burada.</li>
+        <li><b>stream_event</b>: modelin cevabı parça parça geliyor.</li>
+        <li><b>assistant</b>: modelden tamamlanmış bir blok: metin ya da araç çağrısı (tool_use).</li>
+        <li><b>user / tool_result</b>: harness aracı çalıştırdı, sonucu modele geri verdi.</li>
+        <li><b>result</b>: tur bitti; süre, tur sayısı ve maliyet.</li>
+      </ul>
+    </details>
+    <div id="log"></div>
+  </aside>
+</main>
+
+<script>
+const $ = (id) => document.getElementById(id);
+
+let sessionId = null;   // Tarayıcının sohbet hakkında bildiği tek şey bu id.
+let preview = null;     // Yazılmakta olan cevabın geçici balonu.
+let lastLogRow = null;
+
+// ---- Sunucuya mesaj gönder, gelen olay akışını satır satır oku ----
+
+async function send(text) {
+  addMessage('user', text);
+  setBusy(true);
+  try {
+    const res = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: text, sessionId }),
+    });
+    if (!res.ok) throw new Error((await res.json()).error);
+
+    // Cevap tek parça gelmiyor: her satırı bir JSON olay olan bir akış.
+    const reader = res.body.pipeThrough(new TextDecoderStream()).getReader();
+    let buffer = '';
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += value;
+      const lines = buffer.split('\n');
+      buffer = lines.pop();           // son satır yarım kalmış olabilir
+      for (const line of lines) {
+        if (!line.trim()) continue;
+        let event;
+        try { event = JSON.parse(line); } catch { event = { type: 'raw', text: line }; }
+        handleEvent(event);
+      }
+    }
+  } catch (err) {
+    addMessage('error', err.message);
+  } finally {
+    clearPreview();
+    setBusy(false);
+  }
+}
+
+// ---- Harness'ten gelen her olayı işle ----
+
+function handleEvent(ev) {
+  logEvent(ev);
+  if (ev.session_id) setSession(ev.session_id);
+
+  switch (ev.type) {
+    case 'stream_event': {
+      const delta = ev.event?.delta;
+      if (ev.event?.type === 'content_block_delta' && delta?.type === 'text_delta') {
+        appendPreview(delta.text);
+      }
+      break;
+    }
+    case 'assistant':
+      clearPreview();
+      for (const block of ev.message.content) {
+        if (block.type === 'text' && block.text.trim()) addMessage('assistant', block.text);
+        if (block.type === 'tool_use') addTool('araç çağrısı', `${block.name} ${JSON.stringify(block.input)}`);
+      }
+      break;
+    case 'user':
+      for (const block of [].concat(ev.message.content)) {
+        if (block.type === 'tool_result') addTool(block.is_error ? 'araç hatası' : 'araç sonucu', toText(block.content));
+      }
+      break;
+    case 'result':
+      if (ev.is_error) addMessage('error', ev.result || ev.subtype);
+      addMessage('meta', `${ev.num_turns} tur · ${(ev.duration_ms / 1000).toFixed(1)} sn · $${(ev.total_cost_usd ?? 0).toFixed(4)}`);
+      break;
+    case 'server_error':
+      addMessage('error', ev.message);
+      break;
+  }
+}
+
+function toText(content) {
+  if (typeof content === 'string') return content;
+  return [].concat(content ?? []).map((part) => part.text ?? `[${part.type}]`).join('\n');
+}
+
+// ---- Ekrana çizim ----
+
+function addMessage(kind, text) {
+  $('empty')?.remove();
+  const el = document.createElement('div');
+  el.className = `msg ${kind}`;
+  el.textContent = text;
+  $('messages').append(el);
+  el.scrollIntoView({ block: 'end' });
+  return el;
+}
+
+function addTool(label, text) {
+  const el = addMessage('tool', '');
+  const b = document.createElement('b');
+  b.textContent = label + ': ';
+  el.append(b, text.length > 400 ? text.slice(0, 400) + '…' : text);
+}
+
+function appendPreview(text) {
+  if (!preview) preview = addMessage('assistant preview', '');
+  preview.textContent += text;
+  preview.scrollIntoView({ block: 'end' });
+}
+
+function clearPreview() {
+  preview?.remove();
+  preview = null;
+}
+
+function setSession(id) {
+  sessionId = id;
+  $('session').textContent = id ?? 'henüz yok';
+}
+
+function setBusy(busy) {
+  $('send').disabled = busy;
+  $('new').disabled = busy;
+  $('send').textContent = busy ? 'Çalışıyor…' : 'Gönder';
+  if (!busy) $('input').focus();
+}
+
+// Sağ panel: gelen her olayın ham hali. stream_event'ler çok sık geldiği
+// için art arda gelenleri tek satırda sayıyoruz.
+function logEvent(ev) {
+  if (ev.type === 'stream_event' && lastLogRow?.dataset.type === 'stream_event') {
+    const count = Number(lastLogRow.dataset.count) + 1;
+    lastLogRow.dataset.count = count;
+    lastLogRow.querySelector('.info').textContent = ` × ${count}`;
+    return;
+  }
+  const row = document.createElement('details');
+  row.className = 'ev';
+  row.dataset.type = ev.type;
+  row.dataset.count = 1;
+  const summary = document.createElement('summary');
+  const type = document.createElement('span');
+  type.className = 'type';
+  type.textContent = ev.subtype && ev.type === 'system' ? `system / ${ev.subtype}` : ev.type;
+  const info = document.createElement('span');
+  info.className = 'info';
+  info.textContent = describe(ev);
+  summary.append(type, info);
+  const pre = document.createElement('pre');
+  pre.textContent = JSON.stringify(ev, null, 2);
+  row.append(summary, pre);
+  $('log').append(row);
+  row.scrollIntoView({ block: 'end' });
+  lastLogRow = row;
+}
+
+function describe(ev) {
+  if (ev.type === 'system' && ev.subtype === 'init') return ` · ${ev.model} · araçlar: ${ev.tools?.join(', ')}`;
+  if (ev.type === 'assistant') return ' · ' + ev.message.content.map((b) => (b.type === 'tool_use' ? `tool_use: ${b.name}` : b.type)).join(', ');
+  if (ev.type === 'user') return ' · ' + [].concat(ev.message.content).map((b) => b.type ?? 'text').join(', ');
+  if (ev.type === 'result') return ` · ${ev.subtype}`;
+  return '';
+}
+
+// ---- Form ----
+
+$('form').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const text = $('input').value.trim();
+  if (!text || $('send').disabled) return;
+  $('input').value = '';
+  send(text);
+});
+
+$('input').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) {
+    e.preventDefault();
+    $('form').requestSubmit();
+  }
+});
+
+// Yeni sohbet = session id'yi unut. Bir sonraki mesaj --resume olmadan gider,
+// harness yeni bir session açar.
+$('new').addEventListener('click', () => {
+  setSession(null);
+  $('messages').replaceChildren();
+  $('log').replaceChildren();
+  lastLogRow = null;
+});
+</script>
+</body>
+</html>
